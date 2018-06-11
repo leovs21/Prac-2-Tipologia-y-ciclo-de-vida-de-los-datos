@@ -1,0 +1,111 @@
+---
+title: "PRAC2_TD"
+author: "Lenadro Alonso Von Semasco"
+date: "06 de junio de 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+Realizamos una carga de los datos del dataset
+
+```{r chunck1}
+titanic <- read.table(file = "train.csv", header = TRUE, sep = ",", dec = ".")
+```
+
+
+##Limpieza y normalizacion de los datos.
+
+
+```{r chunck2}
+sapply(titanic, function(x) class(x))
+#Modificamos aquellos tipos de datos que se corresponden a una clasificacion al tipo factor
+titanic$Pclass = as.factor(titanic$Pclass)
+titanic$Survived = as.factor(titanic$Survived)
+
+#Estudiamos cuantos valores ausentes se encuentran en el dataset
+sapply(titanic, function(x) sum(is.na(x)))
+
+#Vemos que hay 177 valores correspondientes a la edad que estan ausentes, para evitar que el estuio se vea afectado por estos valores, optamos por la eliminacion de los registros, pues si pusieramos cualquier valor estariamos condicionando el resultado
+titanic = na.omit(titanic)
+
+#analizamos los datos
+summary(titanic)
+
+#Por otro lado vemos que despues del paso anterios hay 529 valores en la columna correspondiente a la cabina en blanco, demasiados para realizar la opcion anterior, y como no es un dato que aporte una relevancia crucial optamos por suprimir esta columna
+
+#En la columna Embarked se detectan dos valores ausentes por lo que se opta por eliminar dichos registros 
+titanic<-titanic[!titanic$Embarked=="",]
+
+#realizamos un subdataset con unicamente aquellas variables que nos interesan para el estudio
+titanic_Clean<-subset(titanic, select= c(Survived,Pclass,Sex,Age,SibSp,Parch,Fare,Embarked))
+
+titanic_Clean$Age[titanic_Clean$Age <= 15] = "ninio"
+titanic_Clean$Age[(titanic_Clean$Age > 16) & (titanic_Clean$Age <= 40) & (titanic_Clean$Age != "ninio")] = "adulto-joven"
+titanic_Clean$Age[(titanic_Clean$Age > 41) & (titanic_Clean$Age <= 60) & (titanic_Clean$Age != "ninio") & (titanic_Clean$Age != "adulto-joven")] = "adulto"
+titanic_Clean$Age[(titanic_Clean$Age != "ninio") & (titanic_Clean$Age != "adulto-joven") & (titanic_Clean$Age != "adulto")] = "senior"
+titanic_Clean$Age = as.factor(titanic_Clean$Age)
+
+#Realizamos el guardado del dataframe resultante despues de la limpieza y tratamiento de los datos
+write.table(titanic_Clean, file = "titanic_Clean.csv", sep = ",", eol = "\n", dec = ".", row.names = FALSE, col.names = TRUE)
+```
+
+##Analisis de los datos una vez tratados
+
+```{r chunck3}
+summary(titanic_Clean)
+
+#Rango intercuartilico
+
+sapply(titanic_Clean, function(x) class(x))
+boxplot(titanic_Clean$Fare, main="Boxplot of titanic_Clean$Fare",ylab="titanic_Clean$Fare")
+
+boxplot(titanic_Clean$SibSp, main="Boxplot of titanic_Clean$SibSp",ylab="titanic_Clean$SibSp")
+boxplot(titanic_Clean$Parch, main="Boxplot of titanic_Clean$Parch",ylab="titanic_Clean$Parch")
+
+titanic[!titanic$Fare<400.0000,]
+
+#Varianza de los datos.
+var(titanic_Clean)
+
+#Desviacion tipica, Cuanto menor sea mayor homojeneidad habra en los datos
+sd(titanic_Clean$Survived)
+sd(titanic_Clean$Pclass)
+sd(titanic$Age)
+sd(titanic_Clean$Fare)
+
+```
+
+
+##Representacion de los resultados obtenidos
+
+
+```{r chunck4}
+barplot(table(titanic_Clean$Pclass), xlab="Class", ylab="Frequency", main="Histogram of Passenger Class")
+barplot(table(titanic_Clean$Fare), xlab="Fare", ylab="Frequency", main="Histogram of Passenger Fare")
+barplot(table(titanic$Age), xlab="Age", ylab="Frequency", main="Histogram of Passenger Age")
+barplot(table(titanic_Clean$Age), xlab="Age", ylab="Frequency", main="Histogram of Passenger Range-Age")
+
+#Relacion de supervivientes en las distintas clases
+barplot(table(titanic_Clean$Pclass, titanic_Clean$Survived),legend=TRUE,beside=TRUE )
+
+#Relacion de supervivientes en los distintas sexos
+barplot(table(titanic_Clean$Sex, titanic_Clean$Survived),legend=TRUE,beside=TRUE )
+
+#Relacion de supervivientes en las distintas edades
+barplot(table(titanic_Clean$Age, titanic_Clean$Survived),legend=TRUE,beside=TRUE )
+
+#Relacion de supervivientes con lazos con hermanos /esposos abordo
+barplot(table(titanic_Clean$SibSp, titanic_Clean$Survived),legend=TRUE,beside=TRUE )
+
+#Relacion de supervivientes con lazos con hijos/padres abordo
+barplot(table(titanic_Clean$Parch, titanic_Clean$Survived),legend=TRUE,beside=TRUE )
+
+#Relacion de supervivientes en los distintos embarques
+barplot(table(titanic_Clean$Embarked, titanic_Clean$Survived),legend=TRUE,beside=TRUE )
+
+```
